@@ -1,3 +1,4 @@
+```mermaid
 sequenceDiagram
     participant browser
     participant server
@@ -8,5 +9,5 @@ sequenceDiagram
     server-->>browser: {message: "note created"}
     receiving JSON message
     deactivate server
-
+```
     
