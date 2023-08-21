@@ -2,7 +2,7 @@
 
 ```
 osa0
-part1
+osa1
   anekdootit
   kurssitiedot
   unicafe
