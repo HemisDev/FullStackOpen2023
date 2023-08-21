@@ -1,2 +1,5 @@
-# FullStackOpen2023
-Full Stack Open 2023 repo
+# FullStackOpen2023 palautusrepo
+
+```
+osa0
+```
