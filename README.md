@@ -8,4 +8,5 @@ osa1
   unicafe
 osa2
   kurssitiedot
+  puhelinluettelo
 ```
