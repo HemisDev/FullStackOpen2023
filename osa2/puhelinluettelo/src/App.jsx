@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import {Phonebook} from './components/Phonebook'
-import axios from 'axios'
+import personService from './services/webphonebook'
 import {PhoneFilter, NewPhoneItemDialog} from './components/DialogComponents'
 
 const App = () => {
@@ -10,13 +10,16 @@ const App = () => {
   const [filterValue, setFilterValue] = useState('')
 
   useEffect(() => {    
-    axios
-      .get('http://localhost:3001/persons')
+    personService.getAll()
       .then(response => {        
-        setPersons(response.data)
+        setPersons(response)
       })
   }, [])
 
+  const resetValues=()=> {
+    setNewName('')      
+    setPhoneNumber('')   
+  }
 
   const addContact = (event) => {    
     event.preventDefault()
@@ -28,46 +31,64 @@ const App = () => {
     {
       if(!persons.find(person=> person.name === newNameObject.name))
       {
-        setPersons(persons.concat(newNameObject))
-        setNewName('')      
-        setPhoneNumber('')      
+        personService.create(newNameObject)
+        .then(response => {
+          setPersons(persons.concat(response))
+        })       
+        resetValues()        
       }
       else
       {
-        console.log(newNameObject.phone)
         if(newNameObject.phone.length !==0)
         {
           if(persons.find(person => person.name === newNameObject.name && person.phone.length ===0 ))
           {
-            const updatedPerson = persons.map((person) => 
-            person.name === newNameObject.name ? {...person, phone: newNameObject.phone} : person)
-            setPersons(updatedPerson)
-            setNewName('')      
-            setPhoneNumber('')      
+            const person = persons.find((person) =>  person.name === newNameObject.name); 
+            const updatedPerson = {...person, phone: newNameObject.phone, id: person.id}            
+            personService
+              .update(updatedPerson.id, updatedPerson)
+              .then(returnedObject=>{
+                setPersons(persons.map(person=>person.id !==updatedPerson.id ? person: returnedObject))              
+            })            
+            resetValues()            
           }
           else
           {
-            alert(`${newName} has already a number in the phonebook, replacing numbers is not allowed`)
+            if(window.confirm(`${newNameObject.name} is already added to phonebook, replace the old number with a new one?`))
+            {
+              const person = persons.find((person) =>  person.name === newNameObject.name); 
+              const updatedPerson = {...person, phone: newNameObject.phone, id: person.id}    
+              personService
+                .update(updatedPerson.id, updatedPerson)
+                .then(returnedObject=>{
+                  setPersons(persons.map(person=>person.id !==updatedPerson.id ? person: returnedObject))  
+                })
+                resetValues()       
+            }            
           }
         }
         else
         {
-          alert(`${newName} is already in the phonebook`)
+          alert(`Please define a phonenumber for person`)
         }
       }
     }
   }
-  const handleNameChange = (event) => {
-    console.log(event.target.value)
+  const handleNameChange = (event) => {    
     setNewName(event.target.value)
   }
   const handlePhoneChange = (event) => {
-    console.log(event.target.value)
     setPhoneNumber(event.target.value)
   }
   const handleFilterChange = (event) => {
-    console.log(event.target.value)
     setFilterValue(event.target.value)
+  }
+  const handlePhoneDelete = personId => {    
+    const deletePerson = persons.find(p=>p.id === personId)    
+    if(window.confirm(`Delete ${deletePerson.name}? `)){    
+      personService.deleteSingle(personId)        
+      setPersons(persons.filter(person=>person.id !==personId))    
+    }
   }
   return (
     <div>
@@ -82,12 +103,13 @@ const App = () => {
         namebox={newName} 
         phonebox={newPhone} 
         nameHandler={handleNameChange} 
-        phoneHandler={handlePhoneChange}
+        phoneHandler={handlePhoneChange}        
       />                  
       <Phonebook 
         title="Numbers"
         persons={persons}
         filter={filterValue}      
+        delfunction={handlePhoneDelete}
       />
     </div>
   )
