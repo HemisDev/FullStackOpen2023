@@ -1,7 +1,10 @@
-export const PhoneFilter = (props) => {
+import Notification from "./Notification"
+
+export const PhoneFilter = (props) => {  
     return(
       <div>
         <h2>{props.title}</h2>
+        <Notification message={props.message} messageType={props.messageType}/>
         <form>
           filter shown with<input value={props.filter} onChange={props.filterHandler}/>
         </form>

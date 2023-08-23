@@ -8,6 +8,7 @@ const App = () => {
   const [newName, setNewName] = useState('')
   const [newPhone, setPhoneNumber] = useState('')
   const [filterValue, setFilterValue] = useState('')
+  const [infoMessage, setInfoMessage] = useState([])
 
   useEffect(() => {    
     personService.getAll()
@@ -21,6 +22,16 @@ const App = () => {
     setPhoneNumber('')   
   }
 
+  const addNotification =({message,messageType}) =>{    
+    const newMessage ={
+      message:message,
+      messageType:messageType
+    }
+    setInfoMessage(newMessage)
+    setTimeout(() => {
+      setInfoMessage([])
+    }, 2000)
+  }
   const addContact = (event) => {    
     event.preventDefault()
     const newNameObject = {
@@ -34,7 +45,11 @@ const App = () => {
         personService.create(newNameObject)
         .then(response => {
           setPersons(persons.concat(response))
+          addNotification({message:`Added person ${response.name} to phonebook`,messageType:"info"})
         })       
+        .catch(error=>{
+          addNotification({message: `Could not add person ${newNameObject.name} to phonebook. error: ${error}`, messageType:"error"})                                    
+        })
         resetValues()        
       }
       else
@@ -49,7 +64,22 @@ const App = () => {
               .update(updatedPerson.id, updatedPerson)
               .then(returnedObject=>{
                 setPersons(persons.map(person=>person.id !==updatedPerson.id ? person: returnedObject))              
-            })            
+                addNotification({message:`Added phonenumber to person ${returnedObject.name}`,messageType: "info"})
+              })
+              .catch(error=>{
+                if(error.response && error.response.status ===404)
+                {
+                  addNotification({message: `Could not add phonenumber to person: ${person.name}. Person was already deleted!`, messageType:"error"})                                    
+                  personService.getAll()
+                    .then(response => {        
+                      setPersons(response)
+                    })
+                }
+                else
+                {
+                  addNotification({message: `Could not add phonenumber to person: ${person.name}. error: ${error}`, messageType:"error"})                                    
+                }
+              })            
             resetValues()            
           }
           else
@@ -61,9 +91,24 @@ const App = () => {
               personService
                 .update(updatedPerson.id, updatedPerson)
                 .then(returnedObject=>{
-                  setPersons(persons.map(person=>person.id !==updatedPerson.id ? person: returnedObject))  
+                  setPersons(persons.map(person=>person.id !==updatedPerson.id ? person: returnedObject))                    
+                  addNotification({message:`Replaced phonenumber of person ${returnedObject.name}`,messageType:"info"})
                 })
-                resetValues()       
+                .catch(error=>{
+                  if(error.response && error.response.status ===404)
+                  {
+                    addNotification({message: `Could not update phonenumber to person: ${person.name}. Person was already deleted!`, messageType:"error"})                                    
+                    personService.getAll()
+                    .then(response => {        
+                      setPersons(response)
+                    })
+                  }
+                  else
+                  {
+                    addNotification({message: `Could not update phonenumber to person: ${person.name}. error: ${error}`, messageType:"error"})                                    
+                  }
+                })
+              resetValues()       
             }            
           }
         }
@@ -86,7 +131,8 @@ const App = () => {
   const handlePhoneDelete = personId => {    
     const deletePerson = persons.find(p=>p.id === personId)    
     if(window.confirm(`Delete ${deletePerson.name}? `)){    
-      personService.deleteSingle(personId)        
+      personService.deleteSingle(personId)            
+      addNotification({message:`Removed ${deletePerson.name} from phonebook`, messageType:"warning"})        
       setPersons(persons.filter(person=>person.id !==personId))    
     }
   }
@@ -95,7 +141,9 @@ const App = () => {
       <PhoneFilter 
         title="Phonebook"
         filter={filterValue}
-        filterHandler={handleFilterChange}  
+        filterHandler={handleFilterChange}
+        message={infoMessage.message}         
+        messageType={infoMessage.messageType}
       />
       <NewPhoneItemDialog
         title="add a new"
