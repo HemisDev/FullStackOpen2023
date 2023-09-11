@@ -32,6 +32,15 @@ describe('generic blog content tests',() => {
 describe('operations tests',() => {
 
   test('add blog to collection', async () => {
+    const user = {
+      username: 'testi',
+      password: 'salainen'
+    }
+
+    const login = await api
+      .post('/api/login')
+      .send(user)
+      .expect(200)
     const newBlog= {
       title: 'test title',
       author: 'testing author',
@@ -40,6 +49,7 @@ describe('operations tests',() => {
     }
     await api
       .post('/api/blogs')
+      .set('Authorization', `Bearer ${login._body.token}`)
       .send(newBlog)
       .expect(201)
       .expect('Content-Type', /application\/json/)
@@ -51,6 +61,14 @@ describe('operations tests',() => {
     expect(blogs).toContain('test title')
   })
   test('add blog to collection without likes', async () => {
+    const user = {
+      username: 'testi',
+      password: 'salainen'
+    }
+    const login = await api
+      .post('/api/login')
+      .send(user)
+      .expect(200)
     const newBlog= {
       title: 'test title',
       author: 'testing author',
@@ -58,6 +76,7 @@ describe('operations tests',() => {
     }
     await api
       .post('/api/blogs')
+      .set('Authorization', `Bearer ${login._body.token}`)
       .send(newBlog)
       .expect(201)
       .expect('Content-Type', /application\/json/)
@@ -69,38 +88,110 @@ describe('operations tests',() => {
     expect(blogs).toContain('test title')
   })
   test('add blog to collection without title', async () => {
+    const user = {
+      username: 'testi',
+      password: 'salainen'
+    }
+    const login = await api
+      .post('/api/login')
+      .send(user)
+      .expect(200)
     const newBlog= {
       author: 'testing author',
       url:'https://www.google.com'
     }
     await api
       .post('/api/blogs')
+      .set('Authorization', `Bearer ${login._body.token}`)
       .send(newBlog)
       .expect(400)
       .expect('Content-Type', /application\/json/)
   })
   test('add blog to collection without url', async () => {
+    const user = {
+      username: 'testi',
+      password: 'salainen'
+    }
+    const login = await api
+      .post('/api/login')
+      .send(user)
+      .expect(200)
     const newBlog= {
       title: 'test title',
       author: 'testing author'
     }
     await api
       .post('/api/blogs')
+      .set('Authorization', `Bearer ${login._body.token}`)
       .send(newBlog)
       .expect(400)
       .expect('Content-Type', /application\/json/)
   })
-  test('remove a blog from collection', async () => {
+  test('cant remove a blog you did not make from collection', async () => {
     const blogsAtStart = await helper.blogsInDb()
     const blogToDelete = blogsAtStart[0]
 
+    const user = {
+      username: 'testi',
+      password: 'salainen'
+    }
+    const login = await api
+      .post('/api/login')
+      .send(user)
+      .expect(200)
     await api
       .delete(`/api/blogs/${blogToDelete.id}`)
+      .set('Authorization', `Bearer ${login._body.token}`)
+      .expect(400)
+  })
+  test('cant add a blog without authorization', async () => {
+    const newBlog= {
+      title: 'test title',
+      author: 'testing author',
+      url:'https://www.google.com',
+      likes: 10
+    }
+    await api
+      .post('/api/blogs')
+      .send(newBlog)
+      .expect(401)
+      .expect('Content-Type', /application\/json/)
+  })
+  test('remove a blog from collection', async () => {
+    const user = {
+      username: 'testi',
+      password: 'salainen'
+    }
+    const login = await api
+      .post('/api/login')
+      .send(user)
+      .expect(200)
+    const newBlog= {
+      title: 'test title',
+      author: 'testing author',
+      url:'https://www.google.com',
+      likes: 10,
+      login: login._body.user
+    }
+    await api
+      .post('/api/blogs')
+      .set('Authorization', `Bearer ${login._body.token}`)
+      .send(newBlog)
+      .expect(201)
+      .expect('Content-Type', /application\/json/)
+
+    const currentBlogList = await helper.blogsInDb()
+    expect(currentBlogList).toHaveLength(helper.listWithMultipleBlogs.length +1)
+    const blogToDelete = currentBlogList[helper.listWithMultipleBlogs.length]
+
+    await api
+      .delete(`/api/blogs/${blogToDelete.id}`)
+      .set('Authorization', `Bearer ${login._body.token}`)
       .expect(204)
 
     const blogsAtEnd = await helper.blogsInDb()
     expect(blogsAtEnd).toHaveLength(
-      helper.listWithMultipleBlogs.length -1
+      helper.listWithMultipleBlogs.length
     )
     const contents = blogsAtEnd.map(item => item.title)
     expect(contents).not.toContain(blogToDelete.title)

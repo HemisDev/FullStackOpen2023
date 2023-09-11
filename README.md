@@ -10,4 +10,6 @@ osa2
   kurssitiedot
   puhelinluettelo
   maidentiedot
+osa4
+  blogilista
 ```
